@@ -1,9 +1,9 @@
 # LibraryManagementAPI
 
-The LibraryAPI project is a .NET web application that uses a SQL Server database for managing a library.
+The LibraryManagementAPI project is a .NET web application that uses a SQL Server database for managing a library.
 
 ## Table of Contents
-- [Library API](#library-api)
+- [LibraryManagementAPI](#library-management-api)
   - [Table of Contents](#table-of-contents)
   - [Requirements](#requirements)
   - [Setup](#setup)
@@ -16,7 +16,7 @@ The LibraryAPI project is a .NET web application that uses a SQL Server database
       - [Register](#register)
 
 ## Requirements
-Before running the LibraryAPI project, ensure you have the following prerequisites installed:
+Before running the LibraryManagementAPI project, ensure you have the following prerequisites installed:
 - [.NET SDK](https://dotnet.microsoft.com/download) (need .NET 6)
 - [SQL Server for Developer](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
 
@@ -25,14 +25,14 @@ Before running the LibraryAPI project, ensure you have the following prerequisit
 2. Navigate to the `API` directory.
 
 #### Database Setup
-3. Open `appsettings.json` in the `LibraryManagementAPI` project and update the `ConnectionStrings` section with your SQL Server credentials.
+3. Open `appsettings.Development.json` in the `LibraryManagementAPI` project and update the `ConnectionStrings` section with your SQL Server credentials.
 
 #### Running the Application
 4. Use Visual Studio to run LibraryManagementAPI project
 
 #### Accessing the API
 
-Once the LibraryAPI is running, you can access it through the following URL:
+Once the LibraryManagementAPI is running, you can access it through the following URL:
 
 - Swagger Documentation: https://localhost:7049/swagger
 
@@ -51,7 +51,7 @@ Once the LibraryAPI is running, you can access it through the following URL:
 - **DELETE /api/books/{id}**: Remove a book from the library (requires authorization).
 
 ## Authorization
-The LibraryAPI project uses JWT (JSON Web Tokens) for authorization. To perform authorized actions, you must obtain an access token by following the steps below:
+The LibraryManagementAPI project uses JWT (JSON Web Tokens) for authorization. To perform authorized actions, you must obtain an access token by following the steps below:
 
 #### Login
 To obtain an access token for an existing user, use the following endpoint:
