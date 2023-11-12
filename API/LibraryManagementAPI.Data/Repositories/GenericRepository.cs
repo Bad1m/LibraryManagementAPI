@@ -1,7 +1,6 @@
 ﻿using LibraryManagementAPI.Data.Entities;
 using LibraryManagementAPI.Data.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
 
 namespace LibraryManagementAPI.Data.Repositories
 {
@@ -10,41 +9,35 @@ namespace LibraryManagementAPI.Data.Repositories
     {
         protected readonly LibraryContext Context;
         protected readonly DbSet<TEntity> DbSet;
-
         protected GenericRepository(LibraryContext context)
         {
             Context = context;
             DbSet = context.Set<TEntity>();
         }
-
-        public virtual Task<List<TEntity>> GetAsync()
+        public virtual Task<List<TEntity>> GetAsync(CancellationToken cancellationToken)
         {
-            return DbSet.AsNoTracking().ToListAsync();
+            return DbSet.AsNoTracking().ToListAsync(cancellationToken);
         }
 
-        public virtual Task<TEntity?> GetByIdAsync(int? id)
+        public virtual Task<TEntity?> GetByIdAsync(int? id, CancellationToken cancellationToken)
         {
-            var taskEntity = DbSet.AsNoTracking().FirstOrDefaultAsync(_ => _.Id == id);
+            var taskEntity = DbSet.AsNoTracking().FirstOrDefaultAsync(_ => _.Id == id, cancellationToken);
             return taskEntity;
         }
 
-        public virtual async Task<TEntity> InsertAsync(TEntity entity)
+        public virtual TEntity Insert(TEntity entity)
         {
             var createdBookEntity = DbSet.Add(entity).Entity;
-            await Context.SaveChangesAsync();
-
             return createdBookEntity;
         }
 
-        public virtual async Task UpdateAsync(TEntity entity)
+        public virtual void Update(TEntity entity)
         {
             DbSet.Attach(entity);
             Context.Entry(entity).State = EntityState.Modified;
-
-            await Context.SaveChangesAsync();
         }
 
-        public virtual async Task<bool> DeleteAsync(TEntity entityToDelete)
+        public virtual bool Delete(TEntity entityToDelete)
         {
             if (Context.Entry(entityToDelete).State == EntityState.Detached)
             {
@@ -53,8 +46,12 @@ namespace LibraryManagementAPI.Data.Repositories
 
             DbSet.Remove(entityToDelete);
 
-            var affectedEntities = await Context.SaveChangesAsync();
-            return affectedEntities > 0;
+            return true;
+        }
+
+        public virtual async Task SaveChangesAsync(CancellationToken cancellationToken)
+        {
+            await Context.SaveChangesAsync(cancellationToken);
         }
     }
 }

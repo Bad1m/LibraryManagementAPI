@@ -9,9 +9,9 @@ namespace LibraryManagementAPI.Data.Repositories
         public UserRepository(LibraryContext context) : base(context)
         {
         }
-        public Task<User?> GetUserByUsernameAsync(string username)
+        public Task<User?> GetUserByUsernameAsync(string username, CancellationToken cancellationToken)
         {
-            return DbSet.AsNoTracking().FirstOrDefaultAsync(_ => _.Username == username);
+            return DbSet.AsNoTracking().FirstOrDefaultAsync(_ => _.Username == username, cancellationToken);
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using LibraryManagementAPI.Services.Constants;
+using LibraryManagementAPI.Services.Helpers;
 using LibraryManagementAPI.Services.Interfaces;
 using LibraryManagementAPI.Services.Models;
 
@@ -17,15 +18,10 @@ namespace LibraryManagementAPI.Services.Validators
                 .EmailAddress().WithMessage(UserErrors.InvalidEmailFormat);
             RuleFor(user => user.Password).NotEmpty().WithMessage(UserErrors.PasswordRequired);
         }
-
         public void ValidateUser(UserDto userDto)
         {
             var validationResult = Validate(userDto);
-            if (!validationResult.IsValid)
-            {
-                var validationErrors = validationResult.Errors.Select(error => error.ErrorMessage);
-                throw new ValidationException(string.Join("\n", validationErrors));
-            }
+            ValidationHelper.ValidateAndThrow(validationResult);
         }
     }
 }

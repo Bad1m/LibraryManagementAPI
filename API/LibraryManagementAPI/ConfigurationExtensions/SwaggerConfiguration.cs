@@ -33,7 +33,6 @@ namespace LibraryManagementAPI.ConfigurationExtensions
             }
         });
             });
-
             return services;
         }
     }

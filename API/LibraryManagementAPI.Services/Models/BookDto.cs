@@ -1,8 +1,10 @@
-﻿namespace LibraryManagementAPI.Services.Models
+﻿using System.ComponentModel;
+
+namespace LibraryManagementAPI.Services.Models
 {
     public class BookDto
     {
-        public int Id { get; set; }
+        [DefaultValue("978-1-45678-123-4")]
         public string? ISBN { get; set; }
         public string? Title { get; set; }
         public string? Genre { get; set; }

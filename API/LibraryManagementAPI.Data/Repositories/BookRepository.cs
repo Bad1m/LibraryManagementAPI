@@ -10,10 +10,9 @@ namespace LibraryManagementAPI.Data.Repositories
         public BookRepository(LibraryContext context) : base(context)
         {
         }
-
-        public Task<Book?> GetByISBNAsync(string isbn)
+        public Task<Book?> GetByISBNAsync(string isbn, CancellationToken cancellationToken)
         {
-            return DbSet.AsNoTracking().FirstOrDefaultAsync(_ => _.ISBN == isbn);
+            return DbSet.AsNoTracking().FirstOrDefaultAsync(_ => _.ISBN == isbn, cancellationToken);
         }
     }
 }

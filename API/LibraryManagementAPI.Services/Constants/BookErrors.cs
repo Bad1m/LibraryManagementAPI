@@ -9,5 +9,6 @@
         public const string GenreRequired = "Genre is required.";
         public const string ISBNAlreadyExists = "ISBN already exists.";
         public const string BookNotFound = "Book not found.";
+        public const string FailedToDeleteBook = "Failed to delete the book.";
     }
 }

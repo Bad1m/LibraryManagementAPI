@@ -4,11 +4,11 @@ namespace LibraryManagementAPI.Services.Interfaces
 {
     public interface IBookService
     {
-        Task<IEnumerable<BookDto>> GetBooksAsync();
-        Task<BookDto> GetBookAsync(int id);
-        Task<BookDto> GetBookByISBNAsync(string isbn);
-        Task<BookDto> CreateBookAsync(BookDto book);
-        Task<BookDto> UpdateBookAsync(int id, BookDto book);
-        Task<bool> DeleteBookAsync(int id);
+        Task<BookDto> CreateBookAsync(BookDto book, CancellationToken cancellationToken);
+        Task<List<BookDto>> GetAllBooksAsync(CancellationToken cancellationToken);
+        Task<BookDto> GetBookAsync(int id, CancellationToken cancellationToken);
+        Task<BookDto> GetBookByISBNAsync(string isbn, CancellationToken cancellationToken);
+        Task<BookDto> UpdateBookAsync(int id, BookDto book, CancellationToken cancellationToken);
+        Task DeleteBookAsync(int id, CancellationToken cancellationToken);
     }
 }

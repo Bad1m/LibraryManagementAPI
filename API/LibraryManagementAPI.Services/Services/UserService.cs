@@ -1,59 +1,50 @@
 ﻿using AutoMapper;
 using LibraryManagementAPI.Data.Entities;
 using LibraryManagementAPI.Data.Interfaces;
-using LibraryManagementAPI.Data.Settings;
 using LibraryManagementAPI.Services.Constants;
 using LibraryManagementAPI.Services.Interfaces;
 using LibraryManagementAPI.Services.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 
 namespace LibraryManagementAPI.Services.Services
 {
     public class UserService : IUserService
     {
-        private readonly IUserRepository _userRepository;
+        private readonly IUserRepository _repository;
+        private readonly IJWTService _tokenService;
         private readonly IMapper _mapper;
         private readonly IUserValidator _userDtoValidator;
-        private readonly AuthSettings _authSettings;
-
-        public UserService(IUserRepository userRepository, IMapper mapper, IUserValidator userDtoValidator, AuthSettings authSettings)
+        public UserService(IUserRepository userRepository, IJWTService tokenService, IMapper mapper, IUserValidator userDtoValidator)
         {
-            _userRepository = userRepository;
+            _repository = userRepository;
+            _tokenService = tokenService;
             _mapper = mapper;
             _userDtoValidator = userDtoValidator;
-            _authSettings = authSettings;
         }
-
-        public async Task<AuthenticateResponse> Register(UserDto userDto)
+        public async Task<AuthenticateResponse> RegisterAsync(UserDto userDto, CancellationToken cancellationToken)
         {
             _userDtoValidator.ValidateUser(userDto);
-
-            if (!await IsUsernameUniqueAsync(userDto.Username))
+            if (!await IsUsernameUniqueAsync(cancellationToken, userDto.Username))
             {
                 throw new DbUpdateException(UserErrors.UsernameAlreadyExists);
             }
 
             var user = _mapper.Map<User>(userDto);
             user.Password = HashPassword(user.Password);
-            await _userRepository.InsertAsync(user);
+            _repository.Insert(user);
+            await _repository.SaveChangesAsync(cancellationToken);
 
-            var response = await Authenticate(new AuthenticateRequest
+            var response = await AuthenticateAsync(new AuthenticateRequest
             {
                 Username = user.Username,
                 Password = userDto.Password
-            });
-
+            }, cancellationToken);
             return response;
         }
 
-        public async Task<AuthenticateResponse> Authenticate(AuthenticateRequest model)
+        public async Task<AuthenticateResponse> AuthenticateAsync(AuthenticateRequest model, CancellationToken cancellationToken)
         {
-            var user = await _userRepository.GetUserByUsernameAsync(model.Username);
-
+            var user = await _repository.GetUserByUsernameAsync(model.Username, cancellationToken);
             if (user is null)
             {
                 throw new InvalidOperationException(UserErrors.UserNotFound);
@@ -64,54 +55,48 @@ namespace LibraryManagementAPI.Services.Services
                 throw new UnauthorizedAccessException(UserErrors.InvalidPassword);
             }
 
-            var token = GenerateJwtToken(user);
+            var token = _tokenService.GenerateJwtToken(user);
             return new AuthenticateResponse(user, token);
         }
 
-        public async Task<UserDto?> GetUserByIdAsync(int id)
+        public async Task<UserDto?> GetUserByIdAsync(int id, CancellationToken cancellationToken)
         {
-            var userEntity = await _userRepository.GetByIdAsync(id);
-
+            var userEntity = await _repository.GetByIdAsync(id, cancellationToken);
+            EnsureUserExists(userEntity);
             var user = _mapper.Map<UserDto>(userEntity);
-
             return user;
         }
 
-        public async Task<List<UserDto>> GetAllUsersAsync()
+        public async Task<List<UserDto>> GetAllUsersAsync(CancellationToken cancellationToken)
         {
-            var userEntities = await _userRepository.GetAsync();
-
-            var user = _mapper.Map<List<UserDto>>(userEntities);
-
-            return user;
+            var userEntities = await _repository.GetAsync(cancellationToken);
+            var users = _mapper.Map<List<UserDto>>(userEntities);
+            return users;
         }
 
-        public async Task<UserDto> UpdateUserAsync(int id, UserDto user)
+        public async Task<UserDto> UpdateUserAsync(int id, UserDto user, CancellationToken cancellationToken)
         {
             _userDtoValidator.ValidateUser(user);
-
-            var userEntity = await _userRepository.GetByIdAsync(id);
-
-            if (userEntity is null)
-            {
-                throw new InvalidOperationException(UserErrors.UserNotFound);
-            }
-
-            if (userEntity.Username != user.Username && !await IsUsernameUniqueAsync(user.Username, user.Id))
+            var userEntity = await _repository.GetByIdAsync(id, cancellationToken);
+            EnsureUserExists(userEntity);
+            if (userEntity.Username != user.Username && !await IsUsernameUniqueAsync(cancellationToken, user.Username,id))
             {
                 throw new DbUpdateException(UserErrors.UsernameAlreadyExists);
             }
 
-            user.Id = userEntity.Id;
             userEntity = _mapper.Map<User>(user);
-
-            await _userRepository.UpdateAsync(userEntity);
+            userEntity.Id = id;
+            _repository.Update(userEntity);
+            await _repository.SaveChangesAsync(cancellationToken);
             return user;
         }
 
-        public Task<bool> DeleteUserAsync(int id)
+        public async Task DeleteUserAsync(int id, CancellationToken cancellationToken)
         {
-            return _userRepository.DeleteAsync(new User { Id = id });
+            var user = await _repository.GetByIdAsync(id, cancellationToken);
+            EnsureUserExists(user);
+            _repository.Delete(new User { Id = id });
+            await _repository.SaveChangesAsync(cancellationToken);
         }
 
         private string HashPassword(string password)
@@ -119,9 +104,17 @@ namespace LibraryManagementAPI.Services.Services
             return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
-        private async Task<bool> IsUsernameUniqueAsync(string username, int? userId = null)
+        private void EnsureUserExists(User? existingUser)
         {
-            var existingUser = await _userRepository.GetUserByUsernameAsync(username);
+            if (existingUser is null)
+            {
+                throw new InvalidOperationException(UserErrors.UserNotFound);
+            }
+        }
+
+        private async Task<bool> IsUsernameUniqueAsync(CancellationToken cancellationToken, string username, int? userId = null)
+        {
+            var existingUser = await _repository.GetUserByUsernameAsync(username, cancellationToken);
             if (existingUser == null)
             {
                 return true;
@@ -131,28 +124,7 @@ namespace LibraryManagementAPI.Services.Services
             {
                 return true; 
             }
-
             return false;
-        }
-
-        private string GenerateJwtToken(User user)
-        {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_authSettings.Key);
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[] { new Claim("id", user.Id.ToString()) }),
-                IssuedAt = DateTime.UtcNow,
-                Expires = DateTime.UtcNow.Add(_authSettings.TokenLifetime),
-                SigningCredentials = new SigningCredentials(
-              new SymmetricSecurityKey(key),
-              SecurityAlgorithms.HmacSha256Signature
-              ),
-            };
-
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-
-            return tokenHandler.WriteToken(token);
         }
     }
 }

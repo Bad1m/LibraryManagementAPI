@@ -4,6 +4,6 @@ namespace LibraryManagementAPI.Data.Interfaces
 {
     public interface IUserRepository : IRepository<User>
     {
-        Task<User?> GetUserByUsernameAsync(string username);
+        Task<User?> GetUserByUsernameAsync(string username, CancellationToken cancellationToken);
     }
 }

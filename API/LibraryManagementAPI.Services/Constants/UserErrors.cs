@@ -12,5 +12,6 @@
         public const string UsernameAlreadyExists = "Username already exists.";
         public const string UserNotFound = "User not found.";
         public const string InvalidPassword = "Invalid password.";
+        public const string FailedToDeleteUser = "Failed to delete the user.";
     }
 }

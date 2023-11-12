@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using LibraryManagementAPI.Services.Constants;
+using LibraryManagementAPI.Services.Helpers;
 using LibraryManagementAPI.Services.Interfaces;
 using LibraryManagementAPI.Services.Models;
 
@@ -27,11 +28,7 @@ namespace LibraryManagementAPI.Data.Validators
         public void ValidateBook(BookDto bookDto)
         {
             var validationResult = Validate(bookDto);
-            if (!validationResult.IsValid)
-            {
-                var validationErrors = validationResult.Errors.Select(error => error.ErrorMessage);
-                throw new ValidationException(string.Join("\n", validationErrors));
-            }
+            ValidationHelper.ValidateAndThrow(validationResult);
         }
     }
 }

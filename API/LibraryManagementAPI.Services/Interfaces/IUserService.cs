@@ -4,11 +4,11 @@ namespace LibraryManagementAPI.Services.Interfaces
 {
     public interface IUserService
     {
-        Task<AuthenticateResponse> Register(UserDto userDto);
-        Task<AuthenticateResponse> Authenticate(AuthenticateRequest model);
-        Task<UserDto?> GetUserByIdAsync(int id);
-        Task<List<UserDto>> GetAllUsersAsync();
-        Task<UserDto> UpdateUserAsync(int id, UserDto user);
-        Task<bool> DeleteUserAsync(int id);
+        Task<AuthenticateResponse> RegisterAsync(UserDto userDto, CancellationToken cancellationToken);
+        Task<AuthenticateResponse> AuthenticateAsync(AuthenticateRequest model, CancellationToken cancellationToken);
+        Task<UserDto?> GetUserByIdAsync(int id, CancellationToken cancellationToken);
+        Task<List<UserDto>> GetAllUsersAsync(CancellationToken cancellationToken);
+        Task<UserDto> UpdateUserAsync(int id, UserDto user, CancellationToken cancellationToken);
+        Task DeleteUserAsync(int id, CancellationToken cancellationToken);
     }
 }

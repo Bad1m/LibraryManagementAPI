@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+﻿using LibraryManagementAPI.Filters;
 using LibraryManagementAPI.Models;
 using LibraryManagementAPI.Services.Interfaces;
 using LibraryManagementAPI.Services.Models;
@@ -7,80 +7,74 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryManagementAPI.Controllers
 {
+    [TypeFilter(typeof(CancellationTokenFilter))]
     [Route("api/account")]
     [ApiController]
     public class AccountController : ControllerBase
     {
         private readonly IUserService _userService;
-        private readonly IMapper _mapper;
-
-        public AccountController(IUserService userService, IMapper mapper)
+        public AccountController(IUserService userService)
         {
             _userService = userService;
-            _mapper = mapper;
         }
-
         [AllowAnonymous]
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] UserViewModel userModel)
+        public async Task<IActionResult> Register([FromBody] UserDto user, CancellationToken cancellationToken)
         {
-            var user = _mapper.Map<UserDto>(userModel);
-            var response = await _userService.Register(user);
+            var response = await _userService.RegisterAsync(user, cancellationToken);
             return Ok(response);
         }
 
         [AllowAnonymous]
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] AuthenticateViewModel userViewModel)
+        public async Task<IActionResult> Login([FromBody] AuthenticateRequest authRequest, CancellationToken cancellationToken)
         {
-            var authRequest = _mapper.Map<AuthenticateRequest>(userViewModel);
-            var response = await _userService.Authenticate(authRequest);
+            var response = await _userService.AuthenticateAsync(authRequest, cancellationToken);
             return Ok(response);
         }
 
         [AllowAnonymous]
         [HttpGet]
-        public async Task<IActionResult> GetAllUsers()
+        public async Task<PagedResult<UserDto>> GetAllUsers(CancellationToken cancellationToken, int page = 1, int pageSize = 10)
         {
-            var users = await _userService.GetAllUsersAsync();
-            var userViews = _mapper.Map<List<UserViewModel>>(users);
-            return Ok(userViews);
+            var users = await _userService.GetAllUsersAsync(cancellationToken);
+
+            var totalUsers = users.Count;
+            var totalPages = (int)Math.Ceiling(totalUsers / (double)pageSize);
+            var paginatedUsers = users.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+            var pagedResult = new PagedResult<UserDto>
+            {
+                Items = paginatedUsers,
+                TotalItems = totalUsers,
+                Page = page,
+                TotalPages = totalPages
+            };
+            return pagedResult;
         }
 
-        [AllowAnonymous]
+        [Authorize]
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetUserByIdAsync([FromRoute] int id)
+        public async Task<IActionResult> GetUserByIdAsync([FromRoute] int id, CancellationToken cancellationToken)
         {
-            var user = await _userService.GetUserByIdAsync(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            var userView = _mapper.Map<UserViewModel>(user);
-            return userView is not null ? Ok(userView) : NoContent();
+            var user = await _userService.GetUserByIdAsync(id, cancellationToken);
+            return Ok(user);
         }
 
         [Authorize]
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateUserAsync(int id, [FromBody] UserViewModel request)
+        public async Task<IActionResult> UpdateUserAsync(int id, [FromBody] UserDto request, CancellationToken cancellationToken)
         {
-            var userView = _mapper.Map<UserDto>(request);
-            var updatedUser = await _userService.UpdateUserAsync(id, userView);
-            if (updatedUser == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(_mapper.Map<UserViewModel>(updatedUser));
+            var updatedUser = await _userService.UpdateUserAsync(id, request, cancellationToken);
+            return Ok(updatedUser);
         }
 
         [Authorize]
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUserAsync([FromRoute] int id)
+        public async Task<IActionResult> DeleteUserAsync([FromRoute] int id, CancellationToken cancellationToken)
         {
-            var isDelete = await _userService.DeleteUserAsync(id);
-            return isDelete ? Ok() : BadRequest();
+            await _userService.DeleteUserAsync(id, cancellationToken);
+            return Ok();
         }
     }
 }
